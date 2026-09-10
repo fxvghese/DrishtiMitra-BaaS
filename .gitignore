@@ -1,0 +1,38 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Environment / Secrets — NEVER commit these
+.env
+*.env
+
+# SQLite local development database
+*.db
+*.sqlite3
+legal_metrology.db
+
+# Pytest cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Local Datasets (Phase 5B)
+DM-Resources/
+Catalogue/
+*.csv
+
