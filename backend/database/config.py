@@ -53,9 +53,13 @@ class Settings(BaseSettings):
         """Resolve the effective database URL.
 
         Priority:
-          1. DATABASE_URL if set and not a placeholder → use directly (PostgreSQL).
-          2. Otherwise → SQLite local fallback (development / tests only).
+          1. If running in test environment (PYTEST_CURRENT_TEST set) → SQLite in-memory.
+          2. DATABASE_URL if set and not a placeholder → use directly (PostgreSQL).
+          3. Otherwise → SQLite local fallback (development / tests only).
         """
+        import os
+        if os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("TESTING"):
+            return "sqlite:///:memory:"
         placeholder_markers = ("[YOUR-DB-PASSWORD]", "your-password", "localhost:54322")
         if self.DATABASE_URL and not any(m in self.DATABASE_URL for m in placeholder_markers):
             return self.DATABASE_URL

@@ -1,5 +1,6 @@
 """Pytest configuration and fixtures for backend test suite."""
 
+import os
 import pytest
 import jwt
 from typing import Generator
@@ -7,6 +8,9 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker, Session
+
+# Set testing environment variable BEFORE importing app modules
+os.environ["TESTING"] = "1"
 
 from backend.main import app
 from backend.database.client import Base, get_db_session
