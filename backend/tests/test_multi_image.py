@@ -11,7 +11,7 @@ from backend.services.extraction import combine_label_extractions
 
 @patch("backend.routes.inspections.upload_inspection_image")
 @patch("backend.routes.inspections.get_signed_url")
-def test_multi_image_scan_success(mock_get_signed_url, mock_upload, client: TestClient):
+def test_multi_image_scan_success(mock_get_signed_url, mock_upload, client: TestClient, auth_headers: dict):
     """Test POST /api/v1/inspections/scan with multiple images for one inspection."""
     mock_upload.side_effect = [
         {"storage_path": "inspections/folder1/img1.jpg", "bucket": "inspection-images", "size_bytes": 500},
@@ -26,7 +26,7 @@ def test_multi_image_scan_success(mock_get_signed_url, mock_upload, client: Test
             ("images", ("img2.jpg", b"image2-bytes", "image/jpeg")),
         ],
         data={"ocr_text": "Good Bakes Cookies\nMRP: ₹ 100\nNet Qty: 200 g"},
-        headers={"Authorization": "Bearer test-token"},
+        headers=auth_headers,
     )
 
     assert response.status_code == 201

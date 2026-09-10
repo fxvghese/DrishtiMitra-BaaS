@@ -1,4 +1,4 @@
-"""PaddleOCR implementation service with graceful fallback and error handling."""
+"""PaddleOCR implementation service with graceful error handling and safe empty review state."""
 
 import logging
 from typing import List, Optional
@@ -24,13 +24,13 @@ class PaddleOCRService(BaseOCRService):
                 self._ocr_instance = PaddleOCR(use_angle_cls=self.use_angle_cls, lang=self.lang, show_log=False)
                 logger.info("PaddleOCR engine initialized successfully.")
             except Exception as exc:
-                logger.warning(f"Could not initialize PaddleOCR engine (falling back to mock/stub OCR): {exc}")
+                logger.warning(f"Could not initialize PaddleOCR engine: {exc}")
                 self._ocr_instance = None
             self._initialized = True
         return self._ocr_instance
 
     def extract_text(self, image_bytes: bytes) -> OCRResult:
-        """Extract text from image bytes using PaddleOCR or fallback."""
+        """Extract text from image bytes using PaddleOCR."""
         ocr = self._get_engine()
         blocks: List[OCRBlock] = []
         raw_lines: List[str] = []
@@ -38,7 +38,6 @@ class PaddleOCRService(BaseOCRService):
 
         if ocr is not None:
             try:
-                import tempfile
                 import numpy as np
                 import cv2
 
@@ -50,8 +49,8 @@ class PaddleOCRService(BaseOCRService):
                 result = ocr.ocr(img, cls=self.use_angle_cls)
                 if result and result[0]:
                     for line in result[0]:
-                        box = line[0]  # [[x1, y1], [x2, y2], [x3, y3], [x4, y4]]
-                        text_conf = line[1]  # (text, confidence)
+                        box = line[0]
+                        text_conf = line[1]
                         txt = text_conf[0]
                         conf = float(text_conf[1])
                         raw_lines.append(txt)
@@ -61,20 +60,14 @@ class PaddleOCRService(BaseOCRService):
                 logger.error(f"PaddleOCR execution error: {exc}")
 
         if not raw_lines:
-            # Fallback mock OCR result for testing/unsupported environments
-            logger.info("Using fallback/mock OCR result.")
-            raw_lines = [
-                "Good Bakes Premium Cookies",
-                "Manufacturer: Good Bakes Ltd, 123 Industrial Area, Mumbai - 400001",
-                "Net Quantity: 200 g",
-                "MRP: Rs. 50.00 (Inclusive of all taxes)",
-                "Pkg Date: 07/2026",
-                "Consumer Care: care@goodbakes.com, Ph: 1800-123-4567",
-                "Country of Origin: India"
-            ]
-            confidences = [0.95] * len(raw_lines)
-            for txt in raw_lines:
-                blocks.append(OCRBlock(text=txt, confidence=0.95))
+            logger.warning("OCR engine returned no text or is unavailable. Returning empty OCR result (safe REVIEW state).")
+            return OCRResult(
+                raw_text="",
+                confidence=0.0,
+                blocks=[],
+                provider="paddleocr",
+                model="failed-or-empty",
+            )
 
         raw_text = "\n".join(raw_lines)
         avg_confidence = float(sum(confidences) / len(confidences)) if confidences else 0.0

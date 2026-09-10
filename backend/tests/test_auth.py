@@ -16,7 +16,7 @@ def test_scan_missing_auth_header(client: TestClient):
     assert response.status_code == 401
 
 
-def test_evaluate_unauthorized_owner(client: TestClient, db_session: Session):
+def test_evaluate_unauthorized_owner(client: TestClient, db_session: Session, auth_headers: dict):
     """Test evaluating another user's inspection returns 403 Forbidden."""
     inspection = Inspection(
         image_url="inspections/test/other.jpg",
@@ -27,6 +27,6 @@ def test_evaluate_unauthorized_owner(client: TestClient, db_session: Session):
 
     response = client.post(
         f"/api/v1/inspections/{inspection.id}/evaluate",
-        headers={"Authorization": "Bearer test-token-abc"},
+        headers=auth_headers,
     )
     assert response.status_code == 403

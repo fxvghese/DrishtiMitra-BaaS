@@ -87,7 +87,7 @@ def test_compliance_engine_prohibited_count_name(db_session: Session):
     assert any(v["rule_number"] == "13" for v in summary.violations)
 
 
-def test_compliance_api_endpoint(client: TestClient, db_session: Session):
+def test_compliance_api_endpoint(client: TestClient, db_session: Session, auth_headers: dict):
     """Test POST /api/v1/inspections/{inspection_id}/evaluate API endpoint."""
     inspection = Inspection(
         image_url="inspections/test/api_eval.jpg",
@@ -110,7 +110,7 @@ def test_compliance_api_endpoint(client: TestClient, db_session: Session):
 
     response = client.post(
         f"/api/v1/inspections/{inspection.id}/evaluate",
-        headers={"Authorization": "Bearer test-token"},
+        headers=auth_headers,
     )
     assert response.status_code == 200
     data = response.json()

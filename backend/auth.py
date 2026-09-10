@@ -1,4 +1,4 @@
-"""Authentication and Authorization module using Supabase JWT."""
+"""Authentication and Authorization module using cryptographically verified Supabase JWT."""
 
 import logging
 import jwt
@@ -11,7 +11,7 @@ settings = get_settings()
 
 
 def get_current_user(authorization: Optional[str] = Header(None)) -> Dict[str, Any]:
-    """Validate Supabase JWT Bearer token and return authenticated user details."""
+    """Validate Supabase JWT Bearer token with cryptographic signature verification."""
     if not authorization:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -28,20 +28,16 @@ def get_current_user(authorization: Optional[str] = Header(None)) -> Dict[str, A
         )
 
     token = parts[1]
-
-    if token.startswith("test-token") or (settings.APP_ENV == "development" and token == "development-token"):
-        return {
-            "user_id": "test-user-id-123",
-            "email": "test@drishtimitra.com",
-            "role": "authenticated",
-        }
+    jwt_secret = getattr(settings, "SUPABASE_JWT_SECRET", None) or settings.SUPABASE_KEY or "fallback-secret"
 
     try:
-        jwt_secret = getattr(settings, "SUPABASE_JWT_SECRET", None) or settings.SUPABASE_KEY
-        try:
-            payload = jwt.decode(token, options={"verify_signature": False})
-        except Exception:
-            payload = jwt.decode(token, jwt_secret, algorithms=["HS256", "RS256"], options={"verify_signature": True})
+        # Enforce cryptographic signature verification
+        payload = jwt.decode(
+            token,
+            jwt_secret,
+            algorithms=["HS256", "RS256"],
+            options={"verify_signature": True},
+        )
 
         user_id = payload.get("sub") or payload.get("id")
         if not user_id:
@@ -55,7 +51,7 @@ def get_current_user(authorization: Optional[str] = Header(None)) -> Dict[str, A
             "role": payload.get("role", "authenticated"),
         }
     except jwt.PyJWTError as exc:
-        logger.warning(f"JWT validation failed: {exc}")
+        logger.warning(f"JWT cryptographic signature verification failed: {exc}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Could not validate credentials: {str(exc)}",

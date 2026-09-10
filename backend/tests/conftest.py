@@ -1,6 +1,7 @@
 """Pytest configuration and fixtures for backend test suite."""
 
 import pytest
+import jwt
 from typing import Generator
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
@@ -228,3 +229,13 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def auth_headers() -> dict:
+    """Provide valid cryptographically signed JWT authorization headers for testing."""
+    from backend.database.config import get_settings
+    settings = get_settings()
+    jwt_secret = getattr(settings, "SUPABASE_JWT_SECRET", None) or settings.SUPABASE_KEY or "fallback-secret"
+    token = jwt.encode({"sub": "test-user-id-123", "role": "authenticated"}, jwt_secret, algorithm="HS256")
+    return {"Authorization": f"Bearer {token}"}
